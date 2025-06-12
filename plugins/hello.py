@@ -26,4 +26,4 @@ async def meow(e: MessageEvent, adaptor: Adapter) -> None:
     # await adaptor.send_forward_custom([node1, node2], group_id=662805726)
     await adaptor.send_forward_custom([node1, node2], user_id=e.user_id)
 
-HelloPlugin = PluginPlanner(version="1.0.0", flows=[echo_hi, meow])
+HelloPlugin = PluginPlanner(version="0.0.1", flows=[echo_hi, meow])

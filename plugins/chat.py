@@ -186,7 +186,7 @@ async def chat_with_bot(e: MessageEvent, adaptor: Adapter) -> None:
         return
     response = conversation.chat(message)
     await send_text(response)
-ChatPlugin = PluginPlanner(version="1.0.0", flows=[chat_with_bot])
+ChatPlugin = PluginPlanner(version="0.0.1", flows=[chat_with_bot])
 
 # --- 使用示例 ---
 if __name__ == '__main__':
