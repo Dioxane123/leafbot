@@ -1,4 +1,4 @@
-from melobot import Bot, PluginPlanner, on_contain_match, send_text, on_start_match
+from melobot import Bot, PluginPlanner, on_full_match, send_text, on_start_match
 from melobot.protocols.onebot.v11 import ForwardWebSocketIO, OneBotV11Protocol, MessageEvent, on_message, Adapter, MsgChecker
 from melobot.protocols.onebot.v11 import NodeSegment, ImageSegment, TextSegment, LevelRole
 from melobot.utils.parse import CmdParser, CmdArgs
@@ -18,7 +18,7 @@ async def echo_hi(e: MessageEvent) -> None:
         time = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%H:%M:%S")
         await send_text(f"你好，主人！现在时间是 {time}")
 
-@on_contain_match("meow")
+@on_full_match("meow")
 async def meow(e: MessageEvent, adaptor: Adapter) -> None:
     node1 = NodeSegment(content=[TextSegment("我是猫娘喵")], name="卡拉彼丘量产型猫娘", uin=e.user_id, use_std=True)
     node2 = NodeSegment(content=[ImageSegment(file=img_to_b64("image.png"))],

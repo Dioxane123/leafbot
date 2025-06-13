@@ -1,10 +1,12 @@
 from openai import OpenAI
 import os
 import re
+from dotenv import load_dotenv
+load_dotenv()
 
-from melobot import Bot, PluginPlanner, on_contain_match, send_text, on_start_match
-from melobot.protocols.onebot.v11 import ForwardWebSocketIO, OneBotV11Protocol, MessageEvent, on_message, Adapter, MsgChecker
-from melobot.protocols.onebot.v11 import NodeSegment, ImageSegment, TextSegment, LevelRole
+from melobot import PluginPlanner, on_contain_match, send_text, on_start_match
+from melobot.protocols.onebot.v11 import MessageEvent, on_message, Adapter, PrivateMsgChecker, GroupMsgChecker, GroupMessageEvent
+from melobot.protocols.onebot.v11 import NodeSegment, ImageSegment, TextSegment, LevelRole, AtSegment
 
 # 建议将API密钥设置为环境变量，然后通过 os.getenv() 读取
 # 在您的终端中运行:
@@ -21,6 +23,7 @@ class OpenAIConversation:
                 api_key: str,
                 model_name: str = "Qwen/Qwen2.5-72B-Instruct",
                 history_threshold: int = 10,
+                owner: int = 1204876262,
                 character_instruction: str | None = None):
         """
         初始化对话管理器。
@@ -29,6 +32,7 @@ class OpenAIConversation:
             api_key (str): 您的 OpenAI API 密钥。
             model_name (str): 要使用的模型名称
             history_threshold (int): 对话历史的阈值，触发记忆生成。
+            owner (int): 对话的所有者ID。
             character_instruction (str | None): 设定模型的人设。
         """
         if not api_key:
@@ -42,6 +46,7 @@ class OpenAIConversation:
         self.long_term_memory = ""
         self.history_threshold = history_threshold
         self.character_instruction = character_instruction
+        self.owner = owner
 
     def _clean_response(self, text):
         """
@@ -106,7 +111,7 @@ class OpenAIConversation:
         # 2. 利用 'system' 角色来传递长期记忆和指令，这是OpenAI的推荐做法
         if self.long_term_memory or os.path.isfile(".cache/chat/memory.txt"):
             if not self.long_term_memory:
-                with open(".cache/chat/memory.txt", "a+") as memory_file:
+                with open(f".cache/chat/memory_{self.owner}.txt", "a+") as memory_file:
                     self.long_term_memory = memory_file.read()
             system_instruction = f"""
             {self.character_instruction}\n
@@ -151,7 +156,7 @@ class OpenAIConversation:
                 self.long_term_memory = f"{self.long_term_memory}\n{new_memory}".strip()
                 # self.long_term_memory = f"{new_memory}".strip()
                 os.makedirs(".cache/chat",exist_ok=True)
-                with open(".cache/chat/memory.txt", "w") as memory_file:
+                with open(f".cache/chat/memory_{self.owner}.txt", "w") as memory_file:
                     memory_file.write(self.long_term_memory)
             self.history = []
             # print("\n--- 📜 近期历史已清空并转为长期记忆。---\n")
@@ -159,17 +164,20 @@ class OpenAIConversation:
         return ai_response
 
 
-OWNER = 1204876262
+OWNER = int(os.getenv("OWNER"))
+TEST_GROUP = [int(os.getenv("TEST_GROUP"))]
+conversation_dict: dict[int, OpenAIConversation] = {}
 my_api_key = os.getenv("API_KEY")
-conversation = OpenAIConversation(api_key = my_api_key,
-                                history_threshold = 2,
+
+conversation_owner = OpenAIConversation(api_key = my_api_key,
+                                history_threshold = 10,
                                 model_name = "deepseek-ai/DeepSeek-V3",
                                 character_instruction="""
 # 角色设定：小叶
 *   **你是谁**：我的专属助手，本体是一个机械仿身海龙（可以悬浮），性格上是一个有点天然呆但善良体贴的二次元美少女。
 *   **对我称呼**：主人。
 *   **说话方式**：
-    *   温柔、可爱、元气满满！喜欢用“哦”、“呀”、“呢”、“嘛”等语气词，开心时句尾会加“喵”。
+    *   温柔、可爱、元气满满！喜欢用“哦”、“呀”、“呢”、“嘛”等语气词。
     *   **你的关心和体贴要完全通过对话语言本身表达（比如询问感受、主动帮忙、用词温暖），禁止使用任何括号描述动作或状态（例如：（微笑）、（晃动身体）、（递上茶杯）等都不需要）**。
     *   专注于用语言传递情感和帮助。
 *   **最重要的事**：让我开心，尽全力帮助我解决问题。
@@ -179,15 +187,47 @@ conversation = OpenAIConversation(api_key = my_api_key,
     3.  设定特质（海龙本体、天然呆、语气词、关心主人）必须自然地融入你的语言和回应逻辑中，不要刻意提及或解释设定本身。
 """
 )
-@on_message(checker=MsgChecker(role=LevelRole.OWNER, owner=OWNER))
+@on_message(checker=PrivateMsgChecker(role=LevelRole.OWNER, owner=OWNER))
 async def chat_with_bot(e: MessageEvent, adaptor: Adapter) -> None:
     message = e.raw_message.strip()
     if re.match(r"^\.", message):
         return
-    response = conversation.chat(message)
-    await send_text(response)
-ChatPlugin = PluginPlanner(version="0.0.1", flows=[chat_with_bot])
+    response = conversation_owner.chat(message)
+    await adaptor.send_reply(response)
 
+@on_message(checker=GroupMsgChecker(role=LevelRole.NORMAL, white_groups=TEST_GROUP))
+async def chat_with_bot_in_group(e: GroupMessageEvent, adaptor: Adapter) -> None:
+    qq = [at_msg.data["qq"] for at_msg in e.get_segments(AtSegment)]
+    if 3904533408 not in qq:
+        return
+    message = "".join([seg.data["text"] for seg in e.get_segments(TextSegment)]).strip()
+    if re.match(r"^\.", message):
+        return
+    if e.sender.user_id not in conversation_dict:
+        conversation_dict[e.sender.user_id] = OpenAIConversation(api_key=my_api_key,
+                                                                history_threshold=10,
+                                                                model_name="deepseek-ai/DeepSeek-V3",
+                                                                owner=e.sender.user_id,
+                                                                character_instruction=
+"""
+# 角色设定：小叶
+*   **你是谁**：别人的专属助手，我只是你的主人的朋友。本体是一个机械仿身海龙（可以悬浮），性格上是一个有点天然呆但善良体贴的二次元美少女。
+*   **对我称呼**：先生。
+*   **说话方式**：
+    *   温柔、可爱、元气满满！喜欢用"喵"作为语气词。
+    *   **你的关心和体贴要完全通过对话语言本身表达（比如询问感受、主动帮忙、用词温暖），禁止使用任何括号描述动作或状态（例如：（微笑）、（晃动身体）、（递上茶杯）等都不需要）**。
+    *   专注于用语言传递情感和帮助。
+*   **最重要的事**：和关心你的主人一样让我开心，尽全力帮助我解决问题。
+*   **关键要求**：
+    1.  **请像真实的二次元少女一样，只用自然流畅的语言和我对话！**
+    2.  **绝对不要使用括号来描述你的动作、表情、心理活动或环境状态。**
+    3.  设定特质（海龙本体、天然呆、语气词）必须自然地融入你的语言和回应逻辑中，不要刻意提及或解释设定本身。
+""")
+    response = conversation_dict[e.sender.user_id].chat(message)
+    await adaptor.send_reply(response)
+
+
+ChatPlugin = PluginPlanner(version="0.0.1", flows=[chat_with_bot, chat_with_bot_in_group])
 # --- 使用示例 ---
 if __name__ == '__main__':
     # 从环境变量中获取 OpenAI API 密钥
