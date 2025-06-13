@@ -1,6 +1,7 @@
 from openai import OpenAI
 import os
 import re
+from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -166,7 +167,6 @@ class OpenAIConversation:
 
 OWNER = int(os.getenv("OWNER"))
 TEST_GROUP = [int(os.getenv("TEST_GROUP"))]
-conversation_dict: dict[int, OpenAIConversation] = {}
 my_api_key = os.getenv("API_KEY")
 
 conversation_owner = OpenAIConversation(api_key = my_api_key,
@@ -187,6 +187,7 @@ conversation_owner = OpenAIConversation(api_key = my_api_key,
     3.  设定特质（海龙本体、天然呆、语气词、关心主人）必须自然地融入你的语言和回应逻辑中，不要刻意提及或解释设定本身。
 """
 )
+conversation_dict: dict[int, OpenAIConversation] = {OWNER: conversation_owner}
 @on_message(checker=PrivateMsgChecker(role=LevelRole.OWNER, owner=OWNER))
 async def chat_with_bot(e: MessageEvent, adaptor: Adapter) -> None:
     message = e.raw_message.strip()
@@ -198,7 +199,7 @@ async def chat_with_bot(e: MessageEvent, adaptor: Adapter) -> None:
 @on_message(checker=GroupMsgChecker(role=LevelRole.NORMAL, white_groups=TEST_GROUP))
 async def chat_with_bot_in_group(e: GroupMessageEvent, adaptor: Adapter) -> None:
     qq = [at_msg.data["qq"] for at_msg in e.get_segments(AtSegment)]
-    if 3904533408 not in qq:
+    if e.self_id not in qq:
         return
     message = "".join([seg.data["text"] for seg in e.get_segments(TextSegment)]).strip()
     if re.match(r"^\.", message):
@@ -223,6 +224,9 @@ async def chat_with_bot_in_group(e: GroupMessageEvent, adaptor: Adapter) -> None
     2.  **绝对不要使用括号来描述你的动作、表情、心理活动或环境状态。**
     3.  设定特质（海龙本体、天然呆、语气词）必须自然地融入你的语言和回应逻辑中，不要刻意提及或解释设定本身。
 """)
+    time = datetime.fromtimestamp(e.time)
+    message = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {e.sender.nickname}: {message}"
+    print(message)
     response = conversation_dict[e.sender.user_id].chat(message)
     await adaptor.send_reply(response)
 
