@@ -8,7 +8,11 @@ from zoneinfo import ZoneInfo
 
 from utils.image import img_to_b64
 
-OWNER_ID = 1204876262
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+OWNER_ID = os.getenv("OWNER")
 
 @on_start_match(".sayhi")
 async def echo_hi(e: MessageEvent) -> None:
