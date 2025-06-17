@@ -77,20 +77,15 @@ def load_history() -> set:
 # 加载历史记录到全局变量中
 downloaded_history = load_history()
 
-# 用于存储本次运行中新下载的项目的标题
-cache: list[str] = []
-
-# --- 3. 初始化 HTTP 客户端 (移除了 Aria2 初始化) ---
-
 # 初始化 HTTP 请求会话 (session)
 session = requests.session()
 # 从环境变量或配置文件中加载代理设置
-# if http_proxy := os.getenv("HTTP_PROXY"):
-#     session.proxies.update(http=http_proxy)
-# if https_proxy := os.getenv("HTTPS_PROXY"):
-#     session.proxies.update(https=https_proxy)
-# if proxy := config.get('proxy'):
-#     session.proxies.update(proxy)
+if http_proxy := os.getenv("HTTP_PROXY"):
+    session.proxies.update(http=http_proxy)
+if https_proxy := os.getenv("HTTPS_PROXY"):
+    session.proxies.update(https=https_proxy)
+if proxy := config.get('proxy'):
+    session.proxies.update(proxy)
 
 # 设置 User-Agent
 agent = os.getenv("MTA_USER_AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.82")
@@ -131,7 +126,7 @@ def download_and_save_torrent(url: str, save_dir: str, title: str):
 
 
 # --- 【核心修改】修改 get_latest 函数, 调用新的保存方法 ---
-def get_latest(url, rule=None, savedir=None):
+def get_latest(url: str, rule: str | None = None, savedir: str | None = None, cache: list[str] = []) -> list[str]:
     """获取指定 RSS feed 的最新更新, 并下载保存种子文件"""
     bangumi_cache = set()
     try:
@@ -170,6 +165,7 @@ def get_latest(url, rule=None, savedir=None):
             continue
 
     downloaded_history.update(bangumi_cache)
+    return cache
 
 
 def write_history(line):
@@ -188,6 +184,7 @@ def write_history(line):
 def run() -> list[str]:
     """主执行函数"""
     global config
+    cache: list[str] = []
     config = json.load(config_path.open(encoding="utf8"))
     logger.info("开始检查 Mikan RSS Feed 更新...")
     logger.info(config)
@@ -203,7 +200,7 @@ def run() -> list[str]:
         rule = bangumi.get('rule') or None
         savedir = bangumi.get('savedir') or None
         
-        get_latest(url, rule=rule, savedir=savedir)
+        cache = get_latest(url, rule=rule, savedir=savedir, cache=cache)
 
     if len(cache) > 0:
         logger.info(f"本次运行共新增 {len(cache)} 个种子文件, 正在更新历史记录...")
