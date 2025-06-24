@@ -8,6 +8,7 @@ from plugins.hello import HelloPlugin
 from plugins.roll import RollPlugin
 from plugins.OneMore import OneMorePlugin
 from plugins.rss import RssPlugin
+from plugins.timer import TimerPlugin
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -22,4 +23,5 @@ if __name__ == "__main__":
     bot.load_plugin(RollPlugin)
     bot.load_plugin(OneMorePlugin)
     bot.load_plugin(RssPlugin)
+    bot.load_plugin(TimerPlugin)
     bot.run()

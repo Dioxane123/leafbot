@@ -42,7 +42,7 @@ async def timer(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
         del active_timer[event.id]
         return
 
-@on_start_match(target=".timerlist", checker=PluginPlanner())
+@on_start_match(target=".timerlist")
 async def timer_list(event: MessageEvent, adaptor: Adapter) -> None:
     """处理 .timerlist 命令，列出所有活动的倒计时"""
     if not active_timer:
@@ -58,7 +58,7 @@ async def timer_list(event: MessageEvent, adaptor: Adapter) -> None:
 
     await adaptor.send_reply(response)
 
-@on_start_match(target=".check", checker=PluginPlanner())
+@on_start_match(target=".check")
 async def check_timer(event: MessageEvent, adaptor: Adapter) -> None:
     """处理 .check 命令，检查当前倒计时状态"""
     if _ := event.get_segments(ReplySegment):
@@ -73,4 +73,5 @@ async def check_timer(event: MessageEvent, adaptor: Adapter) -> None:
     else:
         await adaptor.send_reply("请回复一条倒计时消息以检查状态。")
         return
-    
+
+TimerPlugin = PluginPlanner(version="0.0.1", flows=[timer, timer_list, check_timer])
