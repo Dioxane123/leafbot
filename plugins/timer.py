@@ -1,5 +1,5 @@
-from melobot import PluginPlanner, on_start_match, send_text, on_message
-from melobot.protocols.onebot.v11 import MessageEvent, Adapter, ReplySegment
+from melobot import PluginPlanner, on_start_match
+from melobot.protocols.onebot.v11 import MessageEvent, Adapter, ReplySegment, on_message
 from melobot.utils.parse import CmdParser, CmdArgs
 
 import asyncio
