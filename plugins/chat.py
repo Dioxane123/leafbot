@@ -7,7 +7,7 @@ load_dotenv()
 
 from melobot import PluginPlanner, on_contain_match, send_text, on_start_match
 from melobot.protocols.onebot.v11 import MessageEvent, on_message, Adapter, PrivateMsgChecker, GroupMsgChecker, GroupMessageEvent
-from melobot.protocols.onebot.v11 import NodeSegment, ImageSegment, TextSegment, LevelRole, AtSegment
+from melobot.protocols.onebot.v11 import NodeSegment, ImageSegment, TextSegment, LevelRole, AtSegment, ReplySegment
 
 # 建议将API密钥设置为环境变量，然后通过 os.getenv() 读取
 # 在您的终端中运行:
@@ -191,6 +191,8 @@ conversation_dict: dict[int, OpenAIConversation] = {OWNER: conversation_owner}
 @on_message(checker=PrivateMsgChecker(role=LevelRole.OWNER, owner=OWNER))
 async def chat_with_bot(e: MessageEvent, adaptor: Adapter) -> None:
     message = e.raw_message.strip()
+    if e.get_segments(ReplySegment):
+        return
     if re.match(r"^\.", message):
         return
     response = conversation_owner.chat(message)

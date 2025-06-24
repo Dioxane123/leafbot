@@ -34,12 +34,12 @@ async def timer(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
         return
 
     try:
+        active_timer[event.message_id] = {"end_time": datetime.now() + timedelta(seconds=delay), "user": event.user_id}
         await adaptor.send_reply(f"倒计时 {time_str} 已经启动，你可以通过最开始设置定时器的消息.check来查看倒计时状态。")
-        active_timer[event.id] = {"end_time": datetime.now() + timedelta(seconds=delay), "user": event.user_id}
         await asyncio.sleep(delay)
         await adaptor.send_reply(f"时间到！倒计时 {time_str} 结束！")
     finally:
-        del active_timer[event.id]
+        del active_timer[event.message_id]
         return
 
 @on_start_match(target=".timerlist")
