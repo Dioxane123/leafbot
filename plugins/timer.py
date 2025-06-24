@@ -62,7 +62,7 @@ async def timer_list(event: MessageEvent, adaptor: Adapter) -> None:
 async def check_timer(event: MessageEvent, adaptor: Adapter) -> None:
     """处理 .check 命令，检查当前倒计时状态"""
     if _ := event.get_segments(ReplySegment):
-        msg_id = _[0].data["id"]
+        msg_id = int(_[0].data["id"])
         if msg_id in active_timer:
             timer_info = active_timer[msg_id]
             end_time = timer_info["end_time"]
