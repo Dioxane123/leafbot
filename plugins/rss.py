@@ -38,7 +38,7 @@ async def rss_link(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None
         return
     if len(args.vals) < 4:
         await adaptor.send_reply("参数不足，请提供完整的链接信息。")
-        await adaptor.send_reply("格式：\n.rsslink <url> <title> <enable> <savedir> [rule]")
+        await adaptor.send_reply("格式：\n..rsslink <url> <title> <enable> <savedir> [rule]")
         await adaptor.send_reply("\n".join(args.vals))
         return
     

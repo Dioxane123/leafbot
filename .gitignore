@@ -3,3 +3,4 @@ bot
 .env
 plugins/__pycache__
 utils/__pycache__
+test.py
