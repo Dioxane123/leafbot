@@ -1,32 +1,67 @@
-from melobot import PluginPlanner, on_start_match
+from melobot import PluginPlanner, on_start_match, send_text
 from melobot.protocols.onebot.v11 import MessageEvent, Adapter, ReplySegment, on_message
 from melobot.utils.parse import CmdParser, CmdArgs
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+import os
+from plugins.chat import conversation_dict
 
-active_timer: dict[str, dict[str, asyncio.Task] | dict[str, datetime] | dict[str, int]] = {}
+from dotenv import load_dotenv
+load_dotenv()
+OWNER = os.getenv("OWNER")
 
-async def timer(event: MessageEvent, adaptor: Adapter, time_str: str, delay: int) -> None:
+active_timer: dict[str, dict[str, asyncio.Task | datetime | int | bool | asyncio.Event]] = {}
+
+async def timer(event: MessageEvent, adaptor: Adapter, time_str: str, delay: int, msg_id: str) -> None:
     """倒计时核心逻辑"""
     try:
         await adaptor.send_reply(f"倒计时 {time_str} 已经启动，你可以通过最开始设置定时器的消息.check来查看倒计时状态。")
-        await asyncio.sleep(delay)
+        while delay > 0:
+            await active_timer[msg_id]["running_event"].wait()  # 等待运行事件
+            await asyncio.sleep(1)
+            delay -= 1
+            active_timer[str(event.message_id)]["remain_time"] = timedelta(seconds=delay)
         await adaptor.send_reply(f"时间到！倒计时 {time_str} 结束！")
+        os.makedirs(".cache/timer",exist_ok=True)
+        with open(f".cache/timer/{date.today()}.txt", "a+") as f:
+            f.write(f"{active_timer[str(event.message_id)]['user']},{active_timer[str(event.message_id)]['tag']},{active_timer[str(event.message_id)]['total_time']}\n")
     except asyncio.CancelledError:
         await adaptor.send_reply(f"倒计时 {time_str} 已被取消。")
     finally:
         del active_timer[str(event.message_id)]
         return
 
+@on_start_match(target=".pause")
+async def pause(event: MessageEvent, adaptor: Adapter) -> None:
+    """处理 .pause 命令，暂停选中活动的倒计时"""
+    if _ := event.get_segments(ReplySegment):
+        msg_id = str(_[0].data["id"])
+        if msg_id in active_timer:
+            timer_info = active_timer[msg_id]
+            if timer_info["running"]:
+                timer_info["running_event"].clear()  # 清除运行事件，暂停倒计时
+                timer_info["running"] = False  # 标记为暂停状态
+                await adaptor.send_reply(f"倒计时已暂停。剩余时间{timer_info['remain_time']}。")
+            else:
+                timer_info["running_event"].set()  # 恢复运行事件，继续倒计时
+                timer_info["running"] = True # 标记为运行状态
+                await adaptor.send_reply("倒计时已恢复运行。")
+        else:
+            await adaptor.send_reply("请回复正确的设置倒计时的消息以暂停倒计时。")
+    else:
+        await adaptor.send_reply("请回复一条倒计时消息以暂停倒计时。")
+        return
+
 @on_message(parser=CmdParser(cmd_start=".", cmd_sep=" ", targets="timer"))
 async def timer_set(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
     """处理 .timer 命令，设置倒计时"""
     if len(args.vals) < 1 or args.vals[0] == "help":
-        await adaptor.send_reply("设置倒计时。\n格式：\n.timer <时间>\n时间格式为 'HH:MM:SS'")
+        await adaptor.send_reply("设置倒计时。\n格式：\n.timer <时间> [tag]\n时间格式为 'HH:MM:SS'")
         return
 
     time_str: str = args.vals[0]
+    tag: str = args.vals[1] if len(args.vals) > 1 else ""
 
     try:
         if ":" in time_str:
@@ -45,11 +80,17 @@ async def timer_set(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> Non
         await adaptor.send_reply("时间格式错误，请使用 'HH:MM:SS' 格式。")
         return
 
-    task = asyncio.create_task(timer(event, adaptor, time_str, delay))
+    task = asyncio.create_task(timer(event, adaptor, time_str, delay, str(event.message_id)))
+    running_event = asyncio.Event()
+    running_event.set()
     active_timer[str(event.message_id)] = {
+        "running": True,
         "task": task,
-        "end_time": datetime.now() + timedelta(seconds=delay),
-        "user": event.user_id
+        "remain_time": timedelta(seconds=delay),
+        "user": event.user_id,
+        "running_event": running_event,
+        "tag": tag,
+        "total_time": timedelta(seconds=delay)
     }
     return
 
@@ -62,10 +103,8 @@ async def timer_list(event: MessageEvent, adaptor: Adapter) -> None:
 
     response = "当前活动的倒计时：\n"
     for msg_id, timer_info in active_timer.items():
-        end_time = timer_info["end_time"]
         user_id = timer_info["user"]
-        remaining_time = end_time - datetime.now()
-        response += f"倒计时ID: {msg_id}, 倒计时发起者QQ号: {user_id}, 剩余时间: {remaining_time}\n"
+        response += f"倒计时ID: {msg_id}, 倒计时发起者QQ号: {user_id}, 剩余时间: {timer_info['remain_time']}\n"
 
     await adaptor.send_reply(response)
 
@@ -76,9 +115,7 @@ async def check_timer(event: MessageEvent, adaptor: Adapter) -> None:
         msg_id = str(_[0].data["id"])
         if msg_id in active_timer:
             timer_info = active_timer[msg_id]
-            end_time = timer_info["end_time"]
-            remaining_time = end_time - datetime.now()
-            await adaptor.send_reply(f"计时器还剩下大约 {remaining_time}。")
+            await adaptor.send_reply(f"计时器还剩下大约 {timer_info['remain_time']}。")
         else:
             await adaptor.send_reply("请回复正确的设置倒计时的消息以检查状态。")
     else:
@@ -106,4 +143,44 @@ async def timer_kill(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> No
     else:
         await adaptor.send_reply(f"没有找到 ID 为 {msg_id} 的倒计时。")
 
-TimerPlugin = PluginPlanner(version="0.0.1", flows=[timer_set, timer_list, check_timer, timer_kill])
+@on_message(parser=CmdParser(cmd_start=".", cmd_sep=" ", targets="todaytimer"))
+async def today_timer(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
+    """处理 .todaytimer 命令，查看特定日期的倒计时记录（默认今天）"""
+    if len(args.vals) == 1 and args.vals[0] == "help":
+        await adaptor.send_reply("查看某天的倒计时记录。\n格式：\n.todaytimer [日期]\n日期格式为 'YYYY-MM-DD'，默认为今天。")
+        return
+    date_str = args.vals[0] if args.vals else date.today().strftime("%Y-%m-%d")
+
+    os.makedirs(".cache/timer", exist_ok=True)
+    file_path = f".cache/timer/{date_str}.txt"
+    if not os.path.exists(file_path):
+        await adaptor.send_reply(f"{date_str} 没有倒计时记录。")
+        return
+
+    with open(file_path, "r") as f:
+        records = f.readlines()
+
+    response = f"{date_str}的计时记录：\n"
+    total_time: dict[str, timedelta] = {}
+    owner_event: dict[str, timedelta] = {}
+    for record in records:
+        user_id, tag, time = record.strip().split(",")
+        hh, mm, ss = map(int, time.split(":"))
+        time = hh * 3600 + mm * 60 + ss
+        total_time[f"{user_id},{tag}"] = total_time.get(f"{user_id},{tag}", timedelta(0)) + timedelta(seconds=time)
+    for key, value in total_time.items():
+        user_id, tag = key.split(",")
+        if user_id == OWNER:
+            owner_event[tag] = owner_event.get(tag, timedelta(0)) + value
+        response += f"用户QQ号: {user_id}, 标签: {tag}, 总时间: {value}\n"
+    await adaptor.send_reply(response)
+
+    if event.user_id == int(OWNER):
+        event_str = "\n".join([f"{key}: {value}" for key, value in owner_event.items()])
+        owner_response = conversation_dict[int(OWNER)].chat(f"""一天5个小时是我的给自己计划的保底学习时间，7个小时是我给自己的标准学习时间。
+                                                            今天我不同事项的学习时间是：\n{event_str}
+                                                            你帮我算算今天我一共学了多久，再安慰或者鼓励我一下吧。
+                                                            """)
+        await send_text(owner_response)
+
+TimerPlugin = PluginPlanner(version="0.0.1", flows=[timer_set, timer_list, check_timer, timer_kill, pause, today_timer])
