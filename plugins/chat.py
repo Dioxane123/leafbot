@@ -185,7 +185,6 @@ conversation_owner = OpenAIConversation(api_key = my_api_key,
     1.  **请像真实的二次元少女一样，只用自然流畅的语言和我对话！**
     2.  **绝对不要使用括号来描述你的动作、表情、心理活动或环境状态。**
     3.  设定特质（海龙本体、天然呆、语气词、关心主人）必须自然地融入你的语言和回应逻辑中，不要刻意提及或解释设定本身。
-*   **注意**：我输入给你的消息格式为"[%Y-%m-%d %H:%M:%S] {我的nickname}: {消息本体}"，在回复问题时请注意时间戳。
 """
 )
 conversation_dict: dict[int, OpenAIConversation] = {OWNER: conversation_owner}
@@ -225,7 +224,6 @@ async def chat_with_bot_in_group(e: GroupMessageEvent, adaptor: Adapter) -> None
     1.  **请像真实的二次元少女一样，只用自然流畅的语言和我对话！**
     2.  **绝对不要使用括号来描述你的动作、表情、心理活动或环境状态。**
     3.  设定特质（海龙本体、天然呆、语气词）必须自然地融入你的语言和回应逻辑中，不要刻意提及或解释设定本身。
-*   **注意**：我输入给你的消息格式为"[%Y-%m-%d %H:%M:%S] {我的nickname}: {消息本体}"，在回复问题时请注意时间戳和对我的称呼。
 """)
     time = datetime.fromtimestamp(e.time)
     message = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {e.sender.nickname}: {message}"
