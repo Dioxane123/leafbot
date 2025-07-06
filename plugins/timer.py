@@ -162,7 +162,10 @@ async def today_timer(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> N
 
     response = f"{date_str}的计时记录：\n"
     total_time: dict[str, timedelta] = {}
-    owner_event: dict[str, timedelta] = {}
+    total_user: dict[str, dict[str, timedelta]] = {}
+    for user in os.listdir(".cache/timer/prompt"):
+        user_id = user.split(".")[0]
+        total_user[user_id] = dict()
     for record in records:
         user_id, tag, time = record.strip().split(",")
         hh, mm, ss = map(int, time.split(":"))
@@ -170,17 +173,46 @@ async def today_timer(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> N
         total_time[f"{user_id},{tag}"] = total_time.get(f"{user_id},{tag}", timedelta(0)) + timedelta(seconds=time)
     for key, value in total_time.items():
         user_id, tag = key.split(",")
-        if user_id == OWNER:
-            owner_event[tag] = owner_event.get(tag, timedelta(0)) + value
-        response += f"用户QQ号: {user_id}, 标签: {tag}, 总时间: {value}\n"
+        if user_id in total_user:
+            total_user[user_id][tag] = total_user[user_id].get(tag, timedelta(0)) + value
+
+        if str(event.user_id) == OWNER:
+            response += f"用户QQ号: {user_id}, 标签: {tag}, 总时间: {value}\n"
+        elif user_id == str(event.user_id):
+            response += f"标签: {tag}, 总时间: {value}\n"
     await adaptor.send_reply(response)
 
-    if event.user_id == int(OWNER):
-        event_str = "\n".join([f"{key}: {value}" for key, value in owner_event.items()])
-        owner_response = conversation_dict[int(OWNER)].chat(f"""一天5个小时是我的给自己计划的保底学习时间，7个小时是我给自己的标准学习时间。
-                                                            今天我不同事项的学习时间是：\n{event_str}
-                                                            你帮我算算今天我一共学了多久，再安慰或者鼓励我一下吧。
-                                                            """)
-        await send_text(owner_response)
+    if str(event.user_id) in total_user:
+        event_str = "\n".join([f"{key}: {value}" for key, value in total_user[str(event.user_id)].items()])
+        with open(f".cache/timer/prompt/{event.user_id}.txt", "r") as f:
+            prompt = f.read().strip()
+        prompt = prompt.format(event_str=event_str)
+        response = conversation_dict[event.user_id].chat(prompt)
+        # owner_response = conversation_dict[int(OWNER)].chat(f"""一天5个小时是我的给自己计划的保底学习时间，7个小时是我给自己的标准学习时间。
+        #                                                     今天我不同事项的学习时间是：\n{event_str}\n
+        #                                                     上面学习时间的格式为HH:MM:SS。
+        #                                                     你帮我算算今天我一共学了多久，再安慰或者鼓励我一下吧。
+        #                                                     """)
+        await send_text(response)
 
-TimerPlugin = PluginPlanner(version="0.0.1", flows=[timer_set, timer_list, check_timer, timer_kill, pause, today_timer])
+@on_message(parser=CmdParser(cmd_start=".", cmd_sep=" ", targets="todayprompt"))
+async def today_prompt(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
+    """处理 .todayprompt 命令，设置对应用户在使用todaytimer时的prompt"""
+    if len(args.vals) < 1 or args.vals[0] == "help":
+        await adaptor.send_reply("设置todaytimer的prompt。\n格式：\n.todayprompt <prompt>")
+        return
+    prompt = str(args.vals[0])
+    if str(event.user_id) != OWNER:
+        os.makedirs(".cache/timer/prompt", exist_ok=True)
+        with open(f".cache/timer/prompt/{event.user_id}.txt", "w") as f:
+            f.write(prompt)
+        await adaptor.send_reply("已成功设置todaytimer的prompt。")
+        return
+    else:
+        user = str(args.vals[1]) if len(args.vals) > 1 else OWNER
+        os.makedirs(".cache/timer/prompt", exist_ok=True)
+        with open(f".cache/timer/prompt/{user}.txt", "w") as f:
+            f.write(prompt)
+        await adaptor.send_reply(f"已成功设置用户 {user} 的todaytimer的prompt。")
+
+TimerPlugin = PluginPlanner(version="0.0.1", flows=[timer_set, timer_list, check_timer, timer_kill, pause, today_timer, today_prompt])
