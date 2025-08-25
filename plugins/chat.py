@@ -242,7 +242,7 @@ if __name__ == '__main__':
         print("请设置 'OPENAI_API_KEY' 环境变量。")
     else:
         # 初始化对话，为了演示，我们将历史阈值设为 2 轮对话
-        conversation = OpenAIConversation(api_key=my_api_key, history_threshold=10, model_name="Qwen/Qwen2.5-72B-Instruct")
+        conversation = OpenAIConversation(api_key=my_api_key, history_threshold=10, model_name="deepseek-ai/DeepSeek-V3")
 
         print("你好！我是基于 OpenAI 的对话机器人。输入 '退出' 来结束对话。")
         
