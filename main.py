@@ -10,14 +10,22 @@ from plugins.OneMore import OneMorePlugin
 from plugins.rss import RssPlugin
 from plugins.timer import TimerPlugin
 
+from plugins.ob11adaptor_patches import patch_all
+
 from dotenv import load_dotenv
 load_dotenv()
 import os
 SOCKET_URL = os.getenv("SOCKET_URL", "ws://localhost:8080")
+SOCKET_TOKEN = os.getenv("SOCKET_TOKEN", "")
 
 if __name__ == "__main__":
-    bot = Bot(__name__)
-    bot.add_protocol(OneBotV11Protocol(ForwardWebSocketIO(SOCKET_URL)))
+    bot = (
+        Bot("leafbot")
+        .add_adapter(patch_all(Adapter()))
+        .add_io(ForwardWebSocketIO(url=SOCKET_URL, access_token=SOCKET_TOKEN))
+    )
+    # bot = Bot(__name__).add_adapter(patch_all(Adapter()))
+    # bot.add_io(ForwardWebSocketIO(url=SOCKET_URL, access_token=SOCKET_TOKEN))
     bot.load_plugin(HelloPlugin)
     bot.load_plugin(ChatPlugin)
     bot.load_plugin(RollPlugin)

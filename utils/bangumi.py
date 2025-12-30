@@ -8,8 +8,6 @@ import requests
 from pathlib import Path
 from loguru import logger
 
-# --- 1. 初始化和配置加载 (与之前基本相同) ---
-
 # 获取当前脚本文件所在的目录路径
 workspace = Path(os.path.realpath(__file__)).parent
 
@@ -56,8 +54,6 @@ MAX_HISTORY = os.getenv("MTA_MAX_HISTORY", max(300, len([f for f in config.get('
 logger.info(f"最大历史记录条数设置为 {MAX_HISTORY}")
 
 
-# --- 2. 函数定义 ---
-
 def load_history() -> set:
     """从 history.txt 文件中加载下载历史记录"""
     history = set()
@@ -92,7 +88,6 @@ agent = os.getenv("MTA_USER_AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) A
 session.headers = {"user-agent": agent}
 
 
-# --- 【核心修改】新增的函数：下载并保存种子文件 ---
 def download_and_save_torrent(url: str, save_dir: str, title: str):
     """
     下载 .torrent 文件, 根据标题重命名后保存到指定的子目录中。
@@ -125,7 +120,6 @@ def download_and_save_torrent(url: str, save_dir: str, title: str):
         logger.error(f"下载种子文件 {url} 失败, 错误: {e}")
 
 
-# --- 【核心修改】修改 get_latest 函数, 调用新的保存方法 ---
 def get_latest(url: str, rule: str | None = None, savedir: str | None = None, cache: list[str] = []) -> list[str]:
     """获取指定 RSS feed 的最新更新, 并下载保存种子文件"""
     bangumi_cache = set()
