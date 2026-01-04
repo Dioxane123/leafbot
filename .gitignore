@@ -1,7 +1,9 @@
 bot
 .cache
 .env
+.zed
 plugins/__pycache__
 utils/__pycache__
 test.py
 .DS_Store
+pyproject.toml

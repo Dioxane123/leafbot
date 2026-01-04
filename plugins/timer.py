@@ -5,20 +5,23 @@ from melobot.utils.parse import CmdParser, CmdArgs
 import asyncio
 from datetime import datetime, timedelta, date
 import os
+
 from plugins.chat import conversation_dict
 
 from dotenv import load_dotenv
-load_dotenv()
+_ = load_dotenv()
 OWNER = os.getenv("OWNER")
 
-active_timer: dict[str, dict[str, asyncio.Task | datetime | int | bool | asyncio.Event]] = {}
+active_timer: dict[str, dict[str, asyncio.Event | datetime | int | bool | asyncio.Task | timedelta | str]] = {}
 
 async def timer(event: MessageEvent, adaptor: Adapter, time_str: str, delay: int, msg_id: str) -> None:
     """倒计时核心逻辑"""
     try:
         await adaptor.send_reply(f"倒计时 {time_str} 已经启动，你可以通过最开始设置定时器的消息.check来查看倒计时状态。")
         while delay > 0:
-            await active_timer[msg_id]["running_event"].wait()  # 等待运行事件
+            running_event = active_timer[msg_id]["running_event"]
+            if isinstance(running_event, asyncio.Event):
+                await running_event.wait()  # 等待运行事件
             await asyncio.sleep(1)
             delay -= 1
             active_timer[str(event.message_id)]["remain_time"] = timedelta(seconds=delay)
@@ -40,13 +43,17 @@ async def pause(event: MessageEvent, adaptor: Adapter) -> None:
         if msg_id in active_timer:
             timer_info = active_timer[msg_id]
             if timer_info["running"]:
-                timer_info["running_event"].clear()  # 清除运行事件，暂停倒计时
-                timer_info["running"] = False  # 标记为暂停状态
-                await adaptor.send_reply(f"倒计时已暂停。剩余时间{timer_info['remain_time']}。")
+                running_event = timer_info["running_event"]
+                if isinstance(running_event, asyncio.Event):
+                    running_event.clear()  # 清除运行事件，暂停倒计时
+                    timer_info["running"] = False  # 标记为暂停状态
+                    await adaptor.send_reply(f"倒计时已暂停。剩余时间{timer_info['remain_time']}。")
             else:
-                timer_info["running_event"].set()  # 恢复运行事件，继续倒计时
-                timer_info["running"] = True # 标记为运行状态
-                await adaptor.send_reply("倒计时已恢复运行。")
+                running_event = timer_info["running_event"]
+                if isinstance(running_event, asyncio.Event):
+                    running_event.set()  # 恢复运行事件，继续倒计时
+                    timer_info["running"] = True # 标记为运行状态
+                    await adaptor.send_reply("倒计时已恢复运行。")
         else:
             await adaptor.send_reply("请回复正确的设置倒计时的消息以暂停倒计时。")
     else:
@@ -121,7 +128,7 @@ async def check_timer(event: MessageEvent, adaptor: Adapter) -> None:
     else:
         await adaptor.send_reply("请回复一条倒计时消息以检查状态。")
         return
-    
+
 @on_message(parser=CmdParser(cmd_start=".", cmd_sep=" ", targets="timerkill"))
 async def timer_kill(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
     """处理 .timerkill 命令，取消指定的倒计时"""
@@ -137,9 +144,10 @@ async def timer_kill(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> No
 
     if msg_id in active_timer:
         task = active_timer[msg_id]["task"]
-        task.cancel()
-        del active_timer[msg_id]
-        await adaptor.send_reply(f"倒计时 {msg_id} 已被取消。")
+        if isinstance(task, asyncio.Task):
+            task.cancel()
+            del active_timer[msg_id]
+            await adaptor.send_reply(f"倒计时 {msg_id} 已被取消。")
     else:
         await adaptor.send_reply(f"没有找到 ID 为 {msg_id} 的倒计时。")
 
