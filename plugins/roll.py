@@ -1,6 +1,5 @@
-from melobot import Bot, PluginPlanner, on_contain_match, send_text, on_start_match
-from melobot.protocols.onebot.v11 import ForwardWebSocketIO, OneBotV11Protocol, MessageEvent, on_message, Adapter, MsgChecker
-from melobot.protocols.onebot.v11 import NodeSegment, ImageSegment, TextSegment, LevelRole
+from melobot import PluginPlanner, send_text
+from melobot.protocols.onebot.v11 import MessageEvent, on_message
 from melobot.utils.parse import CmdParser, CmdArgs
 
 import random

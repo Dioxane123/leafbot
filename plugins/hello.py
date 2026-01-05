@@ -1,7 +1,5 @@
-from melobot import Bot, PluginPlanner, on_full_match, send_text, on_start_match
-from melobot.protocols.onebot.v11 import ForwardWebSocketIO, OneBotV11Protocol, MessageEvent, on_message, Adapter, MsgChecker
-from melobot.protocols.onebot.v11 import NodeSegment, ImageSegment, TextSegment, LevelRole
-from melobot.utils.parse import CmdParser, CmdArgs
+from melobot import PluginPlanner, on_full_match, send_text, on_start_match
+from melobot.protocols.onebot.v11 import NodeSegment, ImageSegment, TextSegment, MessageEvent, Adapter
 
 from datetime import datetime
 from zoneinfo import ZoneInfo

@@ -1,13 +1,12 @@
 from openai import OpenAI
+from melobot import PluginPlanner
+from melobot.protocols.onebot.v11 import MessageEvent, on_message, Adapter, PrivateMsgChecker, GroupMsgChecker, GroupMessageEvent
+from melobot.protocols.onebot.v11 import TextSegment, LevelRole, AtSegment, ReplySegment
 import os
 import re
 from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
-
-from melobot import PluginPlanner
-from melobot.protocols.onebot.v11 import MessageEvent, on_message, Adapter, PrivateMsgChecker, GroupMsgChecker, GroupMessageEvent
-from melobot.protocols.onebot.v11 import NodeSegment, ImageSegment, TextSegment, LevelRole, AtSegment, ReplySegment
 
 # 建议将API密钥设置为环境变量，然后通过 os.getenv() 读取
 # 在您的终端中运行:
@@ -28,7 +27,7 @@ class OpenAIConversation:
                 character_instruction: str | None = None):
         """
         初始化对话管理器。
-        
+
         参数:
             api_key (str): 您的 OpenAI API 密钥。
             model_name (str): 要使用的模型名称
@@ -39,8 +38,7 @@ class OpenAIConversation:
         if not api_key:
             raise ValueError("API key cannot be empty.")
 
-        self.client = OpenAI(api_key=api_key, 
-                base_url="https://api.siliconflow.cn/v1")
+        self.client = OpenAI(api_key=api_key, base_url="https://api.siliconflow.cn/v1")
         self.model_name = model_name
         # 历史记录现在遵循 OpenAI 的格式
         self.history = []  # 格式: [{'role': 'user' | 'assistant', 'content': text}]
@@ -61,7 +59,7 @@ class OpenAIConversation:
         """
         生成摘要。
         """
-        
+
         prompt = f"""
         你是一个高效的对话摘要工具。你的任务是阅读一段对话，然后直接输出摘要内容，不能有任何额外的词语或前缀。
 
@@ -84,21 +82,21 @@ class OpenAIConversation:
         {conversation_context}
         输出:
         """
-        
+
         try:
             # 使用 OpenAI API 调用
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}]
             )
-            
+
             # 获取并清洗回复
             raw_memory = response.choices[0].message.content.strip()
             clean_memory = self._clean_response(raw_memory)
-            
+
             # print(f"--- ✅ 新的长期记忆已生成：---\n{clean_memory}\n")
             return clean_memory
-        except Exception as e:
+        except Exception as _:
             # print(f"--- ❌ 调用 OpenAI API 生成记忆时出错: {e} ---")
             return ""
 
@@ -126,10 +124,10 @@ class OpenAIConversation:
             messages_for_chat.append({"role": "system", "content": system_instruction})
         else:
             messages_for_chat.append({"role": "system", "content": self.character_instruction})
-        
+
         # 3. 添加近期历史
         messages_for_chat.extend(self.history)
-        
+
         # 4. 添加用户最新的消息
         messages_for_chat.append({"role": "user", "content": user_message})
 
@@ -151,7 +149,7 @@ class OpenAIConversation:
         if len(self.history) / 2 >= self.history_threshold:
             # 将历史记录转换为纯文本，注意 'assistant' 角色
             context_to_summarize = "\n".join([f"{msg['role']}: {msg['content']}" for msg in self.history])
-            
+
             new_memory = self._generate_memory(context_to_summarize)
             if new_memory:
                 self.long_term_memory = f"{self.long_term_memory}\n{new_memory}".strip()
@@ -245,7 +243,7 @@ if __name__ == '__main__':
         conversation = OpenAIConversation(api_key=my_api_key, history_threshold=10, model_name="deepseek-ai/DeepSeek-V3")
 
         print("你好！我是基于 OpenAI 的对话机器人。输入 '退出' 来结束对话。")
-        
+
         # 对话 1
         user_input = input() #"你好，我叫李华，我正在计划一次去云南的旅行，大概在冬季出发。"
         print(f"\n> 你: {user_input}")
@@ -263,7 +261,7 @@ if __name__ == '__main__':
         print(f"\n> 你: {user_input}")
         response = conversation.chat(user_input)
         print(f"< AI: {response}")
-        
+
         while True:
             user_input = input("\n> 你: ")
             if user_input.lower() in ['退出', 'exit']:
