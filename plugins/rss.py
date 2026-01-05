@@ -113,7 +113,7 @@ async def rss_list(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None
                 await adaptor.send_reply("请输入有效的数字。")
                 return
             start_index = max(0, len(mikan_list) - count)
-            mikan_list = mikan_list[start_index:]
+            mikan_list = mikan_list[-start_index:]
 
         response = "当前RSS订阅链接：\n"
         for i, item in enumerate(mikan_list, start=start_index):
