@@ -84,7 +84,7 @@ async def rss_link(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None
 )
 async def rss_list(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
     """处理 ..rsslist 命令，列出所有 RSS 订阅链接"""
-    if args.vals[0] == "help":
+    if len(args.vals) == 1 and args.vals[0] == "help":
         await adaptor.send_reply("列出所有RSS订阅链接。\n格式：\n..rsslist [-r <counts>]")
         return
 
@@ -103,7 +103,7 @@ async def rss_list(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None
             await adaptor.send_reply("当前没有RSS订阅链接。")
             return
 
-        if args.vals[0] == "-r":
+        if len(args.vals) > 1 and args.vals[0] == "-r":
             if len(args.vals) < 2:
                 await adaptor.send_reply("请提供要显示的项目条数。")
                 return
