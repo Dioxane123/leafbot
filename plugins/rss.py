@@ -31,7 +31,7 @@ async def rss_update(event: MessageEvent, adaptor: Adapter) -> None:
     except Exception as e:
         await adaptor.send_reply(f"更新失败: {e}")
     BaiduPan.syncup(localdir="/home/ecs-user/bangumi")
-    await adaptor.send("已为主人将BT种子同步至百度网盘。")
+    await adaptor.send("已将BT种子同步至百度网盘。")
 
 
 @on_message(
@@ -39,7 +39,7 @@ async def rss_update(event: MessageEvent, adaptor: Adapter) -> None:
     checker=MsgChecker(role=LevelRole.OWNER, owner=OWNER),
 )
 async def rss_link(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
-    """处理 .rsslink 命令，添加 RSS 订阅链接"""
+    """处理 ..rsslink 命令，添加 RSS 订阅链接"""
     if len(args.vals) < 1 or args.vals[0] == "help":
         await adaptor.send_reply(
             "添加RSS订阅链接。\n格式：\n..rsslink <url> <title> <enable> <savedir> [rule]"
@@ -84,6 +84,10 @@ async def rss_link(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None
 )
 async def rss_list(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
     """处理 ..rsslist 命令，列出所有 RSS 订阅链接"""
+    if args.vals[0] == "help":
+        await adaptor.send_reply("列出所有RSS订阅链接。\n格式：\n..rsslist [-r <counts>]")
+        return
+
     if env_config_path := os.getenv("MTA_CONFIGPATH"):
         config_path = Path(env_config_path)
     else:
@@ -94,12 +98,25 @@ async def rss_list(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None
             config = json.load(f)
 
         mikan_list = config.get("mikan", [])
+        start_index = 0
         if not mikan_list:
             await adaptor.send_reply("当前没有RSS订阅链接。")
             return
 
+        if args.vals[0] == "-r":
+            if len(args.vals) < 2:
+                await adaptor.send_reply("请提供要显示的项目条数。")
+                return
+            try:
+                count = int(args.vals[1])
+            except ValueError:
+                await adaptor.send_reply("请输入有效的数字。")
+                return
+            start_index = max(0, len(mikan_list) - count)
+            mikan_list = mikan_list[start_index:]
+
         response = "当前RSS订阅链接：\n"
-        for i, item in enumerate(mikan_list):
+        for i, item in enumerate(mikan_list, start=start_index):
             status = "启用" if item.get("enable", True) else "禁用"
             rule = item.get("rule", "") or "无过滤规则"
             response += f"[{i}] {item.get('title', '未知标题')} ({status})\n"
