@@ -17,7 +17,7 @@ if env_config_path := os.getenv("MTA_CONFIGPATH"):
     config_path = Path(env_config_path)
 else:
     logger.info("使用默认配置文件路径, .cache/bangumi_config/config.json")
-    config_path = Path(".cache/bangumi_config/config.json")
+    config_path = Path("workspace/.cache/bangumi_config/config.json")
 
 # 从配置文件加载配置
 config = None
@@ -37,7 +37,7 @@ if not config:
 if history_path := os.getenv("MTA_HISTORY_FILE"):
     history_path = Path(history_path)
 else:
-    history_path = Path(".cache/bangumi_config/history.txt")
+    history_path = Path("workspace/.cache/bangumi_config/history.txt")
 logger.info(f"使用历史记录文件: {history_path.as_posix()}")
 history_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -45,7 +45,8 @@ history_path.parent.mkdir(parents=True, exist_ok=True)
 if torrent_dir := os.getenv("MTA_TORRENTS_DIR"):
     torrent_base_dir = Path(torrent_dir)
 else:
-    torrent_base_dir = Path("/home/ecs-user/bangumi/bangumi")
+    # torrent_base_dir = Path("/home/ecs-user/bangumi/bangumi")
+    torrent_base_dir = Path.home() / "bangumi" / "bangumi"
 logger.info(f"种子文件将保存在根目录: {torrent_base_dir.as_posix()}")
 torrent_base_dir.mkdir(parents=True, exist_ok=True)  # 确保根目录存在
 
@@ -111,7 +112,7 @@ def download_and_save_torrent(url: str, save_dir: str, title: str):
         # 使用 session 下载 .torrent 文件
         resp = session.get(url)
         resp.raise_for_status()  # 如果请求失败 (例如 404), 会抛出异常
-        
+
         # 将下载的二进制内容写入文件
         save_path.write_bytes(resp.content)
         logger.success(f"成功保存种子文件到: {save_path.as_posix()}")
@@ -190,10 +191,10 @@ def run() -> list[str]:
         if not url:
             logger.warning("发现一个已启用但没有提供 url 的配置项, 已跳过。")
             continue
-            
+
         rule = bangumi.get('rule') or None
         savedir = bangumi.get('savedir') or None
-        
+
         cache = get_latest(url, rule=rule, savedir=savedir, cache=cache)
 
     if len(cache) > 0:

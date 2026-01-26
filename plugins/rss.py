@@ -30,7 +30,7 @@ async def rss_update(event: MessageEvent, adaptor: Adapter) -> None:
         await adaptor.send_reply(text1 + text2)
     except Exception as e:
         await adaptor.send_reply(f"更新失败: {e}")
-    BaiduPan.syncup(localdir="/home/ecs-user/bangumi")
+    BaiduPan.syncup(localdir=str(Path.home() / "bangumi"))
     await adaptor.send("已将BT种子同步至百度网盘。")
 
 
@@ -112,7 +112,7 @@ async def rss_list(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None
             except ValueError:
                 await adaptor.send_reply("请输入有效的数字。")
                 return
-            start_index = max(0, len(mikan_list) - count - 1)
+            start_index = max(0, len(mikan_list) - count)
             mikan_list = mikan_list[-count:]
 
         response = "当前RSS订阅链接：\n"
