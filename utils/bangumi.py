@@ -2,6 +2,7 @@
 # 导入所有需要的库
 import os
 import re
+import sys
 
 import feedparser
 import requests
@@ -9,15 +10,15 @@ from pathlib import Path
 from loguru import logger
 
 # 获取当前脚本文件所在的目录路径
-workspace = Path(os.path.realpath(__file__)).parent
+workspace = Path(sys.argv[0]).resolve().parent
 
 # 确定配置文件的路径
 if env_config_path := os.getenv("MTA_CONFIGPATH"):
     logger.info(f"从环境变量加载配置文件, 路径: {env_config_path}")
     config_path = Path(env_config_path)
 else:
-    logger.info("使用默认配置文件路径, .cache/bangumi_config/config.json")
-    config_path = Path("workspace/.cache/bangumi_config/config.json")
+    logger.info(f"使用默认配置文件路径, {workspace}/.cache/bangumi_config/config.json")
+    config_path = Path(f"{workspace}/.cache/bangumi_config/config.json")
 
 # 从配置文件加载配置
 config = None
