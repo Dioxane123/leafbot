@@ -11,6 +11,7 @@ from plugins.OneMore import OneMorePlugin
 from plugins.roll import RollPlugin
 from plugins.rss import RssPlugin
 from plugins.timer import TimerPlugin
+from plugins.bangumi_config_manager import BangumiConfigPlugin
 
 load_dotenv()
 SOCKET_URL = os.getenv("SOCKET_URL", "ws://localhost:8080")
@@ -23,9 +24,10 @@ if __name__ == "__main__":
         .add_io(ForwardWebSocketIO(url=SOCKET_URL, access_token=SOCKET_TOKEN))
     )
     bot.load_plugin(HelloPlugin)
-    bot.load_plugin(ChatPlugin)
+    # bot.load_plugin(ChatPlugin)
     bot.load_plugin(RollPlugin)
     bot.load_plugin(OneMorePlugin)
     bot.load_plugin(RssPlugin)
     bot.load_plugin(TimerPlugin)
+    bot.load_plugin(BangumiConfigPlugin)
     bot.run()

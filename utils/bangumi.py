@@ -38,7 +38,7 @@ if not config:
 if history_path := os.getenv("MTA_HISTORY_FILE"):
     history_path = Path(history_path)
 else:
-    history_path = Path("workspace/.cache/bangumi_config/history.txt")
+    history_path = Path(f"{workspace}/.cache/bangumi_config/history.txt")
 logger.info(f"使用历史记录文件: {history_path.as_posix()}")
 history_path.parent.mkdir(parents=True, exist_ok=True)
 
