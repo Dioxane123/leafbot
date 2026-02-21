@@ -18,10 +18,11 @@ BaiduPan = ByPy()
 
 
 @on_start_match(
-    target=".rssupdate", checker=MsgChecker(role=LevelRole.OWNER, owner=OWNER)
+    parser=CmdParser(cmd_start = "..", cmd_sep = " ", targets="rssupdate"),
+    checker=MsgChecker(role=LevelRole.OWNER, owner=OWNER)
 )
 async def rss_update(event: MessageEvent, adaptor: Adapter) -> None:
-    """处理 .rssupdate 命令，更新 RSS 订阅"""
+    """处理 ..rssupdate 命令，更新 RSS 订阅"""
     await adaptor.send("正在为主人更新 RSS 订阅...")
     try:
         result = bangumi_update()

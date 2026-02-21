@@ -24,7 +24,7 @@ if __name__ == "__main__":
         .add_io(ForwardWebSocketIO(url=SOCKET_URL, access_token=SOCKET_TOKEN))
     )
     bot.load_plugin(HelloPlugin)
-    # bot.load_plugin(ChatPlugin)
+    bot.load_plugin(ChatPlugin)
     bot.load_plugin(RollPlugin)
     bot.load_plugin(OneMorePlugin)
     bot.load_plugin(RssPlugin)
