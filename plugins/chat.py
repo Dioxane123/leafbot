@@ -58,7 +58,7 @@ async def handle_chat(user_message: str, event: MessageEvent, adaptor: Adapter, 
 
 
 @on_message(checker=PrivateMsgChecker(role=LevelRole.OWNER))
-async def chat_private(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
+async def chat_private(event: MessageEvent, adaptor: Adapter) -> None:
     """处理私聊消息"""
     message = "".join([
         seg.data["text"] for seg in event.get_segments(TextSegment)
@@ -71,7 +71,7 @@ async def chat_private(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> 
 
 
 @on_message(checker=GroupMsgChecker(role=LevelRole.NORMAL, white_groups=[int(os.getenv("TEST_GROUP", "0"))]))
-async def chat_group(event: GroupMessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
+async def chat_group(event: GroupMessageEvent, adaptor: Adapter) -> None:
     """处理群聊消息"""
     message = "".join([
         seg.data["text"] for seg in event.get_segments(TextSegment)
