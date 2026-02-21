@@ -57,10 +57,7 @@ async def handle_chat(user_message: str, event: MessageEvent, adaptor: Adapter, 
     await adaptor.send_reply(reply)
 
 
-@on_message(
-    checker=PrivateMsgChecker(role=LevelRole.OWNER),
-    parser=CmdParser(cmd_start="", cmd_sep=" ", targets="")
-)
+@on_message(checker=PrivateMsgChecker(role=LevelRole.OWNER))
 async def chat_private(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
     """处理私聊消息"""
     message = "".join([
@@ -73,10 +70,7 @@ async def chat_private(event: MessageEvent, args: CmdArgs, adaptor: Adapter) -> 
     await handle_chat(message, event, adaptor, is_group=False)
 
 
-@on_message(
-    checker=GroupMsgChecker(role=LevelRole.NORMAL, white_groups=[int(TEST_GROUP)]),
-    parser=CmdParser(cmd_start="", cmd_sep=" ", targets="")
-)
+@on_message(checker=GroupMsgChecker(role=LevelRole.NORMAL, white_groups=[int(os.getenv("TEST_GROUP", "0"))]))
 async def chat_group(event: GroupMessageEvent, args: CmdArgs, adaptor: Adapter) -> None:
     """处理群聊消息"""
     message = "".join([
@@ -94,12 +88,9 @@ async def chat_group(event: GroupMessageEvent, args: CmdArgs, adaptor: Adapter) 
     if not (is_at_me or has_trigger):
         return
 
-    # 移除 @ 和触发词
+    # 移除@
     if is_at_me:
         message = message.replace(f"[@{event.self_id}]", "").strip()
-
-    if message.startswith("小叶"):
-        message = message[2:].strip()
 
     if not message or message.startswith(".."):
         return
