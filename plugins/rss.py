@@ -17,7 +17,7 @@ OWNER = int(os.getenv("OWNER") or "0")
 BaiduPan = ByPy()
 
 
-@on_start_match(
+@on_message(
     parser=CmdParser(cmd_start = "..", cmd_sep = " ", targets="rssupdate"),
     checker=MsgChecker(role=LevelRole.OWNER, owner=OWNER)
 )
