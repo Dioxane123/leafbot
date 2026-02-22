@@ -11,6 +11,7 @@ from plugins.OneMore import OneMorePlugin
 from plugins.roll import RollPlugin
 from plugins.rss import RssPlugin
 from plugins.timer import TimerPlugin
+from plugins.natural_timer import NaturalTimerPlugin
 from plugins.bangumi_config_manager import BangumiConfigPlugin
 
 load_dotenv()
@@ -29,5 +30,6 @@ if __name__ == "__main__":
     bot.load_plugin(OneMorePlugin)
     bot.load_plugin(RssPlugin)
     bot.load_plugin(TimerPlugin)
+    bot.load_plugin(NaturalTimerPlugin)
     bot.load_plugin(BangumiConfigPlugin)
     bot.run()
