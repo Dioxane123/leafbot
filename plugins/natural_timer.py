@@ -1,7 +1,10 @@
 """自然语言定时器插件 - 使用 LLM 理解用户意图"""
 from melobot import PluginPlanner, on_start_match, send_text
-from melobot.protocols.onebot.v11 import MessageEvent, Adapter, ReplySegment, on_message
-from melobot.utils.parse import RawParser
+from melobot.protocols.onebot.v11 import (
+    MessageEvent, on_message, Adapter,
+    PrivateMsgChecker, GroupMsgChecker, GroupMessageEvent,
+    TextSegment, AtSegment, ReplySegment, LevelRole
+)
 
 import asyncio
 import os
@@ -136,7 +139,7 @@ def parse_time_text(time_text: str) -> int:
     return 0
 
 
-@on_message(parser=RawParser())
+@on_message(checker=GroupMsgChecker(role=LevelRole.NORMAL, white_groups=[int(os.getenv("TEST_GROUP", "0"))]))
 async def handle_natural_timer(event: MessageEvent, adaptor: Adapter) -> None:
     """使用 LLM 处理自然语言定时请求"""
     text = event.raw_message.strip()
@@ -319,7 +322,7 @@ async def timer_help(event: MessageEvent, adaptor: Adapter) -> None:
 - "1小时后提醒我休息"
 
 闹钟：
-- "设置10分钟闹钟"
+- "设置10分钟后的闹钟"
 
 查看和取消：
 - "查看我设置的定时"
